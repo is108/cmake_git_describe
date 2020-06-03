@@ -1,0 +1,126 @@
+cmake_minimum_required(VERSION 2.8)
+
+project(mlatSensor)
+
+set (VERSION_MAJOR 1)
+set (VERSION_MINOR 1)
+set (VERSION_PATCH 0)
+set (VERSION_DEV 0)
+set (VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
+
+# генерация файла compile_commands.json
+set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
+
+# подключение модулей; определение переменной ${TARGET_LINK_PAKCKAGES}
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+include("${PROJECT_SOURCE_DIR}/cmake/packages.cmake")
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wold-style-cast -Woverloaded-virtual -Winit-self ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wctor-dtor-privacy -Wnon-virtual-dtor ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wunreachable-code ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsign-conversion -Wfloat-equal -Wcast-qual ")
+
+# gcc > 6.0
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wduplicated-branches -Wduplicated-cond -Wshadow=compatible-local")
+
+# проверка корректности перегрузки функций
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wsign-promo ")
+
+# Игнорирование предудреждений от собстенных библиотек
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${PROJECT_SOURCE_DIR}/src/asterix/src ")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${PROJECT_SOURCE_DIR}/proto/TypeGenerator/include ")
+
+# Игнорирование предудреждений от сторонных библиотек
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${PROJECT_SOURCE_DIR}/libs/clipp/include ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${PROJECT_SOURCE_DIR}/libs/cpp-httplib ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${PROJECT_SOURCE_DIR}/libs/json ")
+
+
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_C_STANDARD 11)
+if(CMAKE_VERSION VERSION_EQUAL   "3.0.0" OR
+   CMAKE_VERSION VERSION_GREATER "3.0.0")
+   set(CMAKE_CXX_EXTENSIONS OFF)
+   set(CMAKE_CXX_STANDARD_REQUIRED ON)
+else()
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++${CMAKE_CXX_STANDARD}")
+   set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   --std=c${CMAKE_C_STANDARD}")
+endif()
+
+########################################################################
+# include
+########################################################################
+include(${PROJECT_SOURCE_DIR}/cmake/proto_gen.cmake)
+include_directories ("${PROJECT_SOURCE_DIR}/libs/clipp/include")
+include_directories ("${PROJECT_SOURCE_DIR}/libs/json")
+include_directories ("${PROJECT_SOURCE_DIR}/libs/cpp-httplib")
+include_directories ("${PROJECT_SOURCE_DIR}/proto/TypeGenerator/include")
+include_directories ("${PROJECT_SOURCE_DIR}/src")
+include_directories ("${PROJECT_BINARY_DIR}")
+
+########################################################################
+# clean
+########################################################################
+add_custom_target (distclean @echo Cleaning for source distribution)
+
+set(cmake_generated "${PROJECT_BINARY_DIR}/CMakeCache.txt"
+                    "${PROJECT_BINARY_DIR}/cmake_install.cmake"
+                    "${PROJECT_BINARY_DIR}/Makefile"
+                    "${PROJECT_BINARY_DIR}/CMakeFiles"
+                    "${PROJECT_SOURCE_DIR}/MessageList.txt"
+                    "${PROJECT_BINARY_DIR}/mlatSensor_autogen"
+                    "${PROJECT_BINARY_DIR}/compile_commands.json"
+                    "${PROJECT_BINARY_DIR}/${GENFOLDER}"
+)
+if (NOT "${PROJECT_BINARY_DIR}/src" STREQUAL "${PROJECT_SOURCE_DIR}/src")
+        set(cmake_generated ${cmake_generated} "${PROJECT_BINARY_DIR}/src")
+endif()
+
+add_custom_command(
+    DEPENDS clean
+    COMMENT "distribution clean"
+    COMMAND rm
+    ARGS    -rf CMakeTmp ${cmake_generated} "${PROJECT_NAME}"
+    TARGET  distclean
+)
+
+
+########################################################################
+# build
+########################################################################
+
+set(HEADERS_INCLUDE)
+set(SOURCES_INCLUDE)
+set(UIS_INCLUDE)
+set(RESOURCES_INCLUDE)
+
+include("${PROJECT_SOURCE_DIR}/src/CmakeListsInclude.cmake")
+
+set (HEADERS ${HEADERS_INCLUDE})
+source_group ("Header Files" FILES ${HEADERS})
+
+set (SOURCES ${SOURCES_INCLUDE})
+source_group("Source Files"  FILES ${SOURCES})
+
+set (UIS ${UIS_INCLUDE})
+source_group("UI"  FILES ${UIS})
+
+set (RESOURCES ${RESOURCES_INCLUDE})
+source_group("RESOURCES"  FILES ${RESOURCES})
+
+add_executable(${PROJECT_NAME} "src/main.cpp" ${SOURCES} ${HEADERS} ${UIS} ${RESOURCES})
+
+target_link_libraries(${PROJECT_NAME} ${TARGET_LINK_PAKCKAGES})
+
+
+########################################################################
+# install
+########################################################################
+
+INSTALL(TARGETS ${PROJECT_NAME} DESTINATION bin)
+
+########################################################################
+# info
+########################################################################
+include("${PROJECT_SOURCE_DIR}/cmake/SymmInfo.cmake")
